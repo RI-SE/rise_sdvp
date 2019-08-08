@@ -246,6 +246,9 @@ private:
     quint16 mTcpChecksum;
     VByteArrayLe mTcpData;
 
+    chronos_ACCM mLastACCM;
+    chronos_EXAC mLastEXAC;
+
     void mkChronosHeader(VByteArrayLe &vb,
                          quint8 transmitter_id,
                          quint8 sequence_num, // per object sequence num

@@ -826,7 +826,8 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
                  break;
              }
          }
-        //TODO: handle ACCM message
+         //TODO: handle ACCM message
+         mLastACCM = accm;
     } break;
 
     case ISO_MSG_EXAC: {
@@ -851,6 +852,9 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
             }
         }
         //TODO: handle EXAC message
+        if(mLastACCM.actionID == exac.actionID){
+            mLastEXAC = exac;
+        }
     } break;
 
     default:

@@ -48,7 +48,7 @@ bool Chronos::startServer(PacketInterface *packet)
 
 void Chronos::startTimerSlot()
 {
-    qDebug() << "Starting car";
+    qDebug() << "Starting car_client Timer";
     mIsStarted = true;
 
     if (mPacket) {
