@@ -170,6 +170,10 @@ void Chronos::processTraj(chronos_traj traj)
 void Chronos::processOsem(chronos_osem osem)
 {
     qDebug() << "OSEM RX";
+    qDebug() << osem.lat;
+    qDebug() << osem.lon;
+    qDebug() << osem.alt;
+    qDebug() << osem.heading;
 
     if (mIsArmed) {
         qDebug() << "Ignored because car is armed";
