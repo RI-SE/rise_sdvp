@@ -1024,6 +1024,7 @@ bool PacketInterface::setEnuRef(quint8 id, double *llh, int retries)
     utility::buffer_append_double64(mSendBuffer, llh[0], 1e16, &send_index);
     utility::buffer_append_double64(mSendBuffer, llh[1], 1e16, &send_index);
     utility::buffer_append_double32(mSendBuffer, llh[2], 1e3, &send_index);
+    qDebug() << "Buffer: " << mSendBuffer << "lon: " << llh[0] << "lat: " << llh[1];
     return sendPacketAck(mSendBuffer, send_index, retries);
 }
 
