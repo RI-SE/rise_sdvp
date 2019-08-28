@@ -187,6 +187,7 @@ void Chronos::processOsem(chronos_osem osem)
     // TODO: Rotate route with heading
 
     if (mPacket) {
+        qDebug() << "mPacket is not null!!";
         mPacket->setEnuRef(255, mLlhRef);
         mPacket->clearRoute(255);
     }
