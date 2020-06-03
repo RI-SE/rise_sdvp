@@ -525,11 +525,14 @@ void ChronosComm::readPendingDatagrams()
 
         vb.remove(vb.size() - 2, 2);
 
-        if (checksum == 0) {
-            decodeMsg(message_id, message_len, vb, sender_id);
-        } else {
-            qDebug() << "Checksum Error";
-        }
+		if (checksum == 0) {
+			decodeMsg(message_id, message_len, vb, sender_id);
+		} else if (/* DISABLES CODE */ (1) /* TODO decode checksum */) {
+			decodeMsg(message_id, message_len, vb, sender_id);
+		}
+		else {
+			qDebug() << "Checksum Error";
+		}
     }
 }
 
