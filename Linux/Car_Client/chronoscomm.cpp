@@ -321,11 +321,11 @@ void ChronosComm::sendStrt(chronos_strt strt)
 
 void ChronosComm::sendMonr(chronos_monr monr)
 {
-	constexpr quint16 monrContentLength = 0x001E;
+    constexpr quint16 monrContentLength = 0x001E;
     VByteArrayLe vb;
 
-	vb.vbAppendUint16(ISO_VALUE_ID_MONR_STRUCT);
-	vb.vbAppendUint16(monrContentLength);
+    vb.vbAppendUint16(ISO_VALUE_ID_MONR_STRUCT);
+    vb.vbAppendUint16(monrContentLength);
     vb.vbAppendUint32(monr.gps_ms_of_week * 4);
     vb.vbAppendDouble32(monr.x,1e3);
     vb.vbAppendDouble32(monr.y,1e3);
@@ -370,7 +370,7 @@ void ChronosComm::sendInitSup(chronos_init_sup init_sup)
 
     sendData(vb, false);
 }
-
+readyRead
 quint8 ChronosComm::transmitterId() const
 {
     return mTransmitterId;
@@ -479,11 +479,17 @@ void ChronosComm::tcpRx(QByteArray data)
         case 13: // checksum
             mTcpChecksum |= ((uint8_t)c) << 8;
             mTcpState = 0;
+
             if (mTcpChecksum == 0) {
                 decodeMsg(mTcpType, mTcpLen, mTcpData, sender_id);
-            } else {
+            } else if (/* DISABLES CODE */ (1) /* TODO decode checksum */) {
+                decodeMsg(mTcpType, mTcpLen, mTcpData, sender_id);
+            }
+            else {
                 qWarning() << "Invalid checksum";
             }
+
+
             break;
         default:
             break;
@@ -525,14 +531,14 @@ void ChronosComm::readPendingDatagrams()
 
         vb.remove(vb.size() - 2, 2);
 
-		if (checksum == 0) {
-			decodeMsg(message_id, message_len, vb, sender_id);
-		} else if (/* DISABLES CODE */ (1) /* TODO decode checksum */) {
-			decodeMsg(message_id, message_len, vb, sender_id);
-		}
-		else {
-			qDebug() << "Checksum Error";
-		}
+        if (checksum == 0) {
+            decodeMsg(message_id, message_len, vb, sender_id);
+        } else if (/* DISABLES CODE */ (1) /* TODO decode checksum */) {
+            decodeMsg(message_id, message_len, vb, sender_id);
+        }
+        else {
+            qDebug() << "Checksum Error";
+        }
     }
 }
 
@@ -564,11 +570,11 @@ void ChronosComm::tcpInputError(QAbstractSocket::SocketError socketError)
 
 void ChronosComm::mkChronosHeader(VByteArrayLe &vb, quint8 transmitter_id, quint8 sequence_num,
                                   bool ack_req, quint8 protocol_ver, quint16 message_id)
-{   
+{
     // a bit unsure of is the ack req should go to leftmost or rightmost bit.
-	quint8 augmented_protocol_ver = protocol_ver;
+    quint8 augmented_protocol_ver = protocol_ver;
     if (ack_req) {
-		augmented_protocol_ver |= 0x80;
+        augmented_protocol_ver |= 0x80;
     }
 
     VByteArrayLe vb2;
