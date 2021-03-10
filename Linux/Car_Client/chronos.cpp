@@ -363,11 +363,11 @@ void Chronos::processRcmm(chronos_rcmm rcmm)
 
         if(rcmm.speedUnit == ISO_UNIT_TYPE_SPEED_METER_SECOND) {
             // This method takes speed in m/s and regulates the motor rpm. Steering -1 to 1.
-            mPacket->setRcControlPid(255, setSpeed, setSteering);
+            mPacket->setRcControlPid(ID_ALL, setSpeed, setSteering);
         }
         else {
             // Speed -100 to 100. Steering -1 to 1
-            mPacket->setRcControlCurrent(255, setSpeed, setSteering);
+            mPacket->setRcControlCurrent(ID_ALL, setSpeed, setSteering);
         }
     }
 }
