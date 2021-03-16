@@ -38,8 +38,7 @@ private:
     ChronosComm *mChronos;
     QTimer *mStartTimer;
     QElapsedTimer mScenarioTimer;
-    bool mIsArmed;
-    bool mIsStarted;
+    qint8 mObjectState;
 
     int mHeabPollCnt;
     double mLlhRef[3];

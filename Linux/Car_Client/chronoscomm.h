@@ -104,7 +104,7 @@ typedef struct {
 } chronos_opro;
 
 typedef struct {
-    int armed;
+    int state;
 } chronos_ostm;
 
 typedef struct {
@@ -324,6 +324,16 @@ typedef struct {
 #define ISO_STEERING_ANGLE_UNAVAILABLE_VALUE 18001
 #define ISO_MAX_VALUE_PERCENTAGE 100
 #define ISO_MIN_VALUE_PERCENTAGE (-100)
+
+// Object states
+#define ISO_OBJECT_STATE_OFF 0x00
+#define ISO_OBJECT_STATE_INIT 0x01
+#define ISO_OBJECT_STATE_ARMED 0x02
+#define ISO_OBJECT_STATE_DISARMED 0x03
+#define ISO_OBJECT_STATE_RUNNING 0x04
+#define ISO_OBJECT_STATE_POSTRUN 0x05
+#define ISO_OBJECT_STATE_REMOTECONTROL 0x06
+#define ISO_OBJECT_STATE_ABORT 0x07
 
 class ChronosComm : public QObject
 {

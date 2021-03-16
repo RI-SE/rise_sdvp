@@ -10,8 +10,7 @@ Chronos::Chronos(QObject *parent) : QObject(parent)
     mPacket = 0;
     mChronos = new ChronosComm(this);
     mStartTimer = new QTimer(this);
-    mIsArmed = false;
-    mIsStarted = false;
+    mObjectState = ISO_OBJECT_STATE_OFF;
 
     mHeabPollCnt = 0;
     mChronos->setTransmitterId(9); //TODO: Set this properly
@@ -61,7 +60,7 @@ ChronosComm *Chronos::comm()
 void Chronos::startTimerSlot()
 {
     qDebug() << "Starting car";
-    mIsStarted = true;
+    mObjectState = ISO_OBJECT_STATE_RUNNING;
 
     if (mPacket) {
         mPacket->setApActive(255, true);
@@ -75,7 +74,7 @@ void Chronos::connectionChanged(bool connected, QString address)
         qDebug() << "Chronos TCP connection accepted from" << address;
     } else {
         qDebug() << "Chronos TCP disconnected from" << address;
-        mIsArmed = false;
+        mObjectState = ISO_OBJECT_STATE_OFF;
     }
 }
 
@@ -106,7 +105,7 @@ void Chronos::stateReceived(quint8 id, CAR_STATE state)
     monr.lat_acc = state.accel[0];
     monr.direction = state.speed >= 0 ? 0 : 1;  // 0 means forward now.
     monr.rdyToArm = 1;
-    monr.status = mIsArmed ? (mIsStarted ? 4 : 2) : 0;
+    monr.status = mObjectState; // TODO: Make sure this modification doesn't destory any other functionality
     // if armed and started -> running (4)
     // if armed and !started -> armed (2)
     // otherwise 0
@@ -186,7 +185,7 @@ void Chronos::processOsem(chronos_osem osem)
 {
     qDebug() << "OSEM RX";
 
-    if (mIsArmed) {
+    if (mObjectState == ISO_OBJECT_STATE_ARMED) {
         qDebug() << "Ignored because car is armed";
         return;
     }
@@ -216,13 +215,15 @@ void Chronos::processOstm(chronos_ostm ostm)
 {
     qDebug() << "OSTM RX";
 
-    if (ostm.armed == 0x2) {
-        mIsArmed = true;
-    } else if (ostm.armed == 0x3) {
-        mIsArmed = false;
+    if (ostm.state == ISO_OBJECT_STATE_ARMED) {
+        qDebug() << "Armed";
+    } else if (ostm.state == ISO_OBJECT_STATE_DISARMED) {
+        qDebug() << "Disarmed";
     }
-
-    qDebug() << "Armed:" << mIsArmed;
+    else if(ostm.state == ISO_OBJECT_STATE_REMOTECONTROL) {
+        qDebug() << "Remote control";
+    }
+    mObjectState = ostm.state;
 }
 
 void Chronos::processStrt(chronos_strt strt)
@@ -231,7 +232,7 @@ void Chronos::processStrt(chronos_strt strt)
 
     qDebug() << "STRT RX" << cTime << strt.gps_ms_of_week;
 
-    if (!mIsArmed) {
+    if (mObjectState != ISO_OBJECT_STATE_ARMED) {
         qDebug() << "Ignored because car is not armed";
         return;
     }
@@ -312,7 +313,10 @@ void Chronos::processRcmm(chronos_rcmm rcmm)
 {
     qDebug() << "RCMM RX";
 
-    // TODO: Check object state? Maneouver command?
+    if (mObjectState != ISO_OBJECT_STATE_REMOTECONTROL) {
+        qDebug() << "Ignored because car is not in remote control state";
+        return;
+    }
 
     if(mPacket) {
         double setSteering = 0;
@@ -357,9 +361,7 @@ void Chronos::processRcmm(chronos_rcmm rcmm)
                 qDebug() << "Unknown unit in RCMM message";
                 return;
             }
-        }
-
-        qDebug() << "Set speed = " << setSpeed << " / steering = " << setSteering;
+		}
 
         if(rcmm.speedUnit == ISO_UNIT_TYPE_SPEED_METER_SECOND) {
             // This method takes speed in m/s and regulates the motor rpm. Steering -1 to 1.
