@@ -10,8 +10,7 @@ Chronos::Chronos(QObject *parent) : QObject(parent)
     mPacket = 0;
     mChronos = new ChronosComm(this);
     mStartTimer = new QTimer(this);
-    mIsArmed = false;
-    mIsStarted = false;
+    mObjectState = ISO_OBJECT_STATE_OFF;
 
     mHeabPollCnt = 0;
     mChronos->setTransmitterId(9); //TODO: Set this properly
@@ -34,6 +33,8 @@ Chronos::Chronos(QObject *parent) : QObject(parent)
             this, SLOT(processStrt(chronos_strt)));
     connect(mChronos, SIGNAL(oproRx(chronos_opro)),
             this, SLOT(processOpro(chronos_opro)));
+    connect(mChronos, SIGNAL(rcmmRx(chronos_rcmm)),
+            this, SLOT(processRcmm(chronos_rcmm)));
 
 }
 
@@ -59,7 +60,7 @@ ChronosComm *Chronos::comm()
 void Chronos::startTimerSlot()
 {
     qDebug() << "Starting car";
-    mIsStarted = true;
+    mObjectState = ISO_OBJECT_STATE_RUNNING;
 
     if (mPacket) {
         mPacket->setApActive(255, true);
@@ -73,7 +74,7 @@ void Chronos::connectionChanged(bool connected, QString address)
         qDebug() << "Chronos TCP connection accepted from" << address;
     } else {
         qDebug() << "Chronos TCP disconnected from" << address;
-        mIsArmed = false;
+        mObjectState = ISO_OBJECT_STATE_OFF;
     }
 }
 
@@ -104,7 +105,7 @@ void Chronos::stateReceived(quint8 id, CAR_STATE state)
     monr.lat_acc = state.accel[0];
     monr.direction = state.speed >= 0 ? 0 : 1;  // 0 means forward now.
     monr.rdyToArm = 1;
-    monr.status = mIsArmed ? (mIsStarted ? 4 : 2) : 0;
+    monr.status = mObjectState; // TODO: Make sure this modification doesn't destory any other functionality
     // if armed and started -> running (4)
     // if armed and !started -> armed (2)
     // otherwise 0
@@ -184,7 +185,7 @@ void Chronos::processOsem(chronos_osem osem)
 {
     qDebug() << "OSEM RX";
 
-    if (mIsArmed) {
+    if (mObjectState == ISO_OBJECT_STATE_ARMED) {
         qDebug() << "Ignored because car is armed";
         return;
     }
@@ -214,13 +215,15 @@ void Chronos::processOstm(chronos_ostm ostm)
 {
     qDebug() << "OSTM RX";
 
-    if (ostm.armed == 0x2) {
-        mIsArmed = true;
-    } else if (ostm.armed == 0x3) {
-        mIsArmed = false;
+    if (ostm.state == ISO_OBJECT_STATE_ARMED) {
+        qDebug() << "Armed";
+    } else if (ostm.state == ISO_OBJECT_STATE_DISARMED) {
+        qDebug() << "Disarmed";
     }
-
-    qDebug() << "Armed:" << mIsArmed;
+    else if(ostm.state == ISO_OBJECT_STATE_REMOTECONTROL) {
+        qDebug() << "Remote control";
+    }
+    mObjectState = ostm.state;
 }
 
 void Chronos::processStrt(chronos_strt strt)
@@ -229,7 +232,7 @@ void Chronos::processStrt(chronos_strt strt)
 
     qDebug() << "STRT RX" << cTime << strt.gps_ms_of_week;
 
-    if (!mIsArmed) {
+    if (mObjectState != ISO_OBJECT_STATE_ARMED) {
         qDebug() << "Ignored because car is not armed";
         return;
     }
@@ -303,5 +306,70 @@ void Chronos::processMtsp(chronos_mtsp mtsp)
 
         qDebug() << closest_sync << mtsp.time_est - ChronosComm::gpsMsOfWeek() <<
                     mSypmLast.sync_point - mSypmLast.stop_time;
+    }
+}
+
+void Chronos::processRcmm(chronos_rcmm rcmm)
+{
+    qDebug() << "RCMM RX";
+
+    if (mObjectState != ISO_OBJECT_STATE_REMOTECONTROL) {
+        qDebug() << "Ignored because car is not in remote control state";
+        return;
+    }
+
+    if(mPacket) {
+        double setSteering = 0;
+        double setSpeed = 0;
+
+        // Fill steering value
+        if (rcmm.steering != ISO_STEERING_ANGLE_UNAVAILABLE_VALUE) {
+            if(rcmm.steeringUnit == ISO_UNIT_TYPE_STEERING_DEGREES) {
+                if (rcmm.steering <= ISO_STEERING_ANGLE_MAX_VALUE_DEG
+                && rcmm.steering >= ISO_STEERING_ANGLE_MIN_VALUE_DEG) {
+                    setSteering = rcmm.steering / ISO_STEERING_ANGLE_ONE_DEGREE_VALUE * (ISO_STEERING_ANGLE_MAX_VALUE_RAD / 180.0);
+                }
+                else {
+                    qDebug() << "Error: Steering angle value is out of bounds\n";
+                    return;
+                }
+            }
+            else if(rcmm.steeringUnit == ISO_UNIT_TYPE_STEERING_PERCENTAGE){
+                if (rcmm.steering <= ISO_MAX_VALUE_PERCENTAGE && rcmm.steering >= ISO_MIN_VALUE_PERCENTAGE) {
+                    setSteering = rcmm.steering / 100.0;
+                }
+                else {
+                    qDebug() << "Error: Steering percentage value is out of bounds\n";
+                    return;
+                }
+            }
+            else {
+                qDebug() << "Unknown unit in RCMM message";
+                return;
+            }
+        }
+
+        // Fill speed value
+        if (rcmm.speed != ISO_SPEED_UNAVAILABLE_VALUE) {
+            if(rcmm.speedUnit == ISO_UNIT_TYPE_SPEED_METER_SECOND) {
+                setSpeed = rcmm.speed / ISO_SPEED_ONE_METER_PER_SECOND_VALUE;
+            }
+            else if(rcmm.speedUnit == ISO_UNIT_TYPE_SPEED_PERCENTAGE){
+                setSpeed = rcmm.speed;
+            }
+            else {
+                qDebug() << "Unknown unit in RCMM message";
+                return;
+            }
+		}
+
+        if(rcmm.speedUnit == ISO_UNIT_TYPE_SPEED_METER_SECOND) {
+            // This method takes speed in m/s and regulates the motor rpm. Steering -1 to 1.
+            mPacket->setRcControlPid(ID_ALL, setSpeed, setSteering);
+        }
+        else {
+            // Speed -100 to 100. Steering -1 to 1
+            mPacket->setRcControlCurrent(ID_ALL, setSpeed, setSteering);
+        }
     }
 }

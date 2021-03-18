@@ -49,6 +49,13 @@ typedef enum {
     OPRO_TYPE_PEDESTRIAN = 30
 } OPRO_OBJECT_TYPE;
 
+typedef enum {
+    ISO_UNIT_TYPE_STEERING_DEGREES = 0,
+    ISO_UNIT_TYPE_STEERING_PERCENTAGE = 1,
+    ISO_UNIT_TYPE_SPEED_METER_SECOND = 2,
+    ISO_UNIT_TYPE_SPEED_PERCENTAGE = 3
+} ISO_UNIT_TYPE;
+
 typedef struct {
     uint32_t tRel;
     double x;
@@ -81,8 +88,6 @@ typedef struct {
     quint16 maxWayDeviation;
     quint16 maxLateralDeviation;
     quint16 minPosAccuracy;
-
-
 } chronos_osem;
 
 typedef struct {
@@ -99,7 +104,7 @@ typedef struct {
 } chronos_opro;
 
 typedef struct {
-    int armed;
+    int state;
 } chronos_ostm;
 
 typedef struct {
@@ -129,6 +134,14 @@ typedef struct {
                         // [AbortReq, BrokeGeoFence, PoorPosAccuracy, EngineFault, BatFault, OtherObjError, Vendor, Vendor]
     uint8_t sender_id;
 } chronos_monr;
+
+typedef struct {
+    int16_t speed;
+    int16_t steering;
+    ISO_UNIT_TYPE steeringUnit;
+    ISO_UNIT_TYPE speedUnit;
+    uint8_t command;             // Manoeuvre command (MANOEUVRE_NONE = 0, MANOEUVRE_BACK_TO_START = 3)
+} chronos_rcmm;
 
 typedef struct {
     uint16_t actionID;
@@ -182,6 +195,7 @@ typedef struct {
 #define ISO_MSG_STRT                    0x0004
 #define ISO_MSG_HEAB                    0x0005
 #define ISO_MSG_MONR                    0x0006
+#define ISO_MSG_RCMM                    0x000A
 
 #define ISO_MSG_TRCM                    0x0011
 #define ISO_MSG_ACCM                    0x0012
@@ -279,7 +293,13 @@ typedef struct {
 //OSEM
 #define ISO_VALUE_ID_OSEM_TRANSMITTER_ID 0x0010
 
-
+//RCMM
+#define ISO_VALUE_ID_RCMM_CONTROL_STATUS         0x0001
+#define ISO_VALUE_ID_RCMM_SPEED_METER_PER_SECOND 0x0011
+#define ISO_VALUE_ID_RCMM_STEERING_ANGLE         0x0012
+#define ISO_VALUE_ID_RCMM_STEERING_PERCENTAGE    0x0031
+#define ISO_VALUE_ID_RCMM_SPEED_PERCENTAGE       0x0032
+#define ISO_VALUE_ID_RCMM_CONTROL                0xA201
 
 // OPRO
 #define ISO_VALUE_ID_OPRO_OBJECT_TYPE 0x0100
@@ -292,6 +312,28 @@ typedef struct {
 #define ISO_VALUE_ID_OPRO_POSITION_DISPLACEMENT_X 0x0107
 #define ISO_VALUE_ID_OPRO_POSITION_DISPLACEMENT_Y 0x0108
 #define ISO_VALUE_ID_OPRO_POSITION_DISPLACEMENT_Z 0x0109
+
+// ************************* Type definitions according ISO protocol specification *******************************
+// Predefined integer values with special meaning
+#define ISO_SPEED_UNAVAILABLE_VALUE (-32768)
+#define ISO_SPEED_ONE_METER_PER_SECOND_VALUE 100.0
+#define ISO_STEERING_ANGLE_ONE_DEGREE_VALUE 100.0
+#define ISO_STEERING_ANGLE_MAX_VALUE_DEG 18000
+#define ISO_STEERING_ANGLE_MIN_VALUE_DEG (-18000)
+#define ISO_STEERING_ANGLE_MAX_VALUE_RAD M_PI
+#define ISO_STEERING_ANGLE_UNAVAILABLE_VALUE 18001
+#define ISO_MAX_VALUE_PERCENTAGE 100
+#define ISO_MIN_VALUE_PERCENTAGE (-100)
+
+// Object states
+#define ISO_OBJECT_STATE_OFF 0x00
+#define ISO_OBJECT_STATE_INIT 0x01
+#define ISO_OBJECT_STATE_ARMED 0x02
+#define ISO_OBJECT_STATE_DISARMED 0x03
+#define ISO_OBJECT_STATE_RUNNING 0x04
+#define ISO_OBJECT_STATE_POSTRUN 0x05
+#define ISO_OBJECT_STATE_REMOTECONTROL 0x06
+#define ISO_OBJECT_STATE_ABORT 0x07
 
 class ChronosComm : public QObject
 {
@@ -330,6 +372,7 @@ signals:
     void strtRx(chronos_strt strt);
     void monrRx(chronos_monr monr);
     void insupRx(chronos_init_sup init_sup);
+    void rcmmRx(chronos_rcmm rcmm);
 
 public slots:
 

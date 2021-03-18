@@ -285,7 +285,7 @@ void ChronosComm::sendOstm(chronos_ostm ostm)
     VByteArrayLe vb;
     vb.vbAppendUint16(ISO_VALUE_ID_STATE_CHANGE_REQ);
     vb.vbAppendUint16(1);
-    vb.vbAppendUint8((uint8_t)ostm.armed);
+    vb.vbAppendUint8((uint8_t)ostm.state);
 
     mkChronosHeader(vb,
                     mTransmitterId,
@@ -822,6 +822,46 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
         }
     } break;
 
+    case ISO_MSG_RCMM: {
+        chronos_rcmm rcmm;
+
+        while (!vb.isEmpty()) {
+            quint16 value_id = vb.vbPopFrontUint16();
+            quint16 value_len = vb.vbPopFrontUint16();
+
+            switch(value_id) {
+            case ISO_VALUE_ID_RCMM_CONTROL_STATUS:
+                qDebug() << "RCMM: ignoring control status value id:" << QString::number(value_id, 16);
+                vb.remove(0, value_len);
+                break;
+            case ISO_VALUE_ID_RCMM_STEERING_ANGLE:
+                rcmm.steeringUnit = ISO_UNIT_TYPE_STEERING_DEGREES;
+                rcmm.steering = vb.vbPopFrontUint16();
+                break;
+            case ISO_VALUE_ID_RCMM_STEERING_PERCENTAGE:
+                rcmm.steeringUnit = ISO_UNIT_TYPE_STEERING_PERCENTAGE;
+                rcmm.steering = vb.vbPopFrontUint16();
+                break;
+            case ISO_VALUE_ID_RCMM_SPEED_METER_PER_SECOND:
+                rcmm.speedUnit = ISO_UNIT_TYPE_SPEED_METER_SECOND;
+                rcmm.speed = vb.vbPopFrontUint16();
+                break;
+            case ISO_VALUE_ID_RCMM_SPEED_PERCENTAGE:
+                rcmm.speedUnit = ISO_UNIT_TYPE_SPEED_PERCENTAGE;
+                rcmm.speed = vb.vbPopFrontUint16();
+                break;
+            case ISO_VALUE_ID_RCMM_CONTROL:
+                rcmm.command = vb.vbPopFrontUint8();
+                break;
+            default:
+                qDebug() << "RCMM: Unknown value id:" << QString::number(value_id, 16);
+                vb.remove(0, value_len);
+                break;
+            }
+        }
+        emit rcmmRx(rcmm);
+    } break;
+
     case ISO_MSG_OSEM: {
 
         chronos_osem osem;
@@ -934,7 +974,7 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
             quint16 value_len = vb.vbPopFrontUint16();
             switch(value_id) {
             case ISO_VALUE_ID_STATE_CHANGE_REQ:
-                ostm.armed = vb.vbPopFrontUint8();
+                ostm.state = vb.vbPopFrontUint8();
                 break;
 
             default:

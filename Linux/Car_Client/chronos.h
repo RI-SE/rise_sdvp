@@ -31,14 +31,14 @@ private slots:
     void processHeab(chronos_heab heab);
     void processSypm(chronos_sypm sypm);
     void processMtsp(chronos_mtsp mtsp);
+    void processRcmm(chronos_rcmm rcmm);
 
 private:
     PacketInterface *mPacket;
     ChronosComm *mChronos;
     QTimer *mStartTimer;
     QElapsedTimer mScenarioTimer;
-    bool mIsArmed;
-    bool mIsStarted;
+    qint8 mObjectState;
 
     int mHeabPollCnt;
     double mLlhRef[3];
