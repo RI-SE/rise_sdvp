@@ -252,11 +252,11 @@ void Chronos::processHeab(chronos_heab heab)
     (void)heab;
 
     if (mPacket) {
-        if (heab.status == 1) {
+		if (heab.status == 1) {
             mHeabPollCnt++;
 
             if (mHeabPollCnt >= 4) {
-                mHeabPollCnt = 0;
+				mHeabPollCnt = 0;
                 mPacket->getState(255);
             }
         } else {

@@ -56,6 +56,16 @@ typedef enum {
     ISO_UNIT_TYPE_SPEED_PERCENTAGE = 3
 } ISO_UNIT_TYPE;
 
+/*! HEAB control center statuses */
+typedef enum {
+	CONTROL_CENTER_STATUS_INIT = 0x00,			//!<
+	CONTROL_CENTER_STATUS_READY = 0x01,			//!<
+	CONTROL_CENTER_STATUS_ABORT = 0x02,			//!<
+	CONTROL_CENTER_STATUS_RUNNING = 0x03,		//!<
+	CONTROL_CENTER_STATUS_TEST_DONE = 0x04,		//!<
+	CONTROL_CENTER_STATUS_NORMAL_STOP = 0x05	//!<
+} ControlCenterStatusType;
+
 typedef struct {
     uint32_t tRel;
     double x;
