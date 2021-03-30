@@ -104,12 +104,8 @@ void Chronos::stateReceived(quint8 id, CAR_STATE state)
     monr.lon_acc = state.accel[1];  // TODO: hmm
     monr.lat_acc = state.accel[0];
     monr.direction = state.speed >= 0 ? 0 : 1;  // 0 means forward now.
-    monr.rdyToArm = 1;
-    monr.status = mObjectState; // TODO: Make sure this modification doesn't destory any other functionality
-    // if armed and started -> running (4)
-    // if armed and !started -> armed (2)
-    // otherwise 0
-    // (Simplified)
+    monr.rdyToArm = mObjectState == ISO_OBJECT_STATE_REMOTECONTROL ? OBJECT_NOT_READY_TO_ARM : OBJECT_READY_TO_ARM;
+    monr.status = mObjectState;
     monr.error = 0; // TODO: check for errors.
 
     mChronos->sendMonr(monr);
@@ -252,7 +248,7 @@ void Chronos::processHeab(chronos_heab heab)
     (void)heab;
 
     if (mPacket) {
-        if (heab.status == 1) {
+        if (heab.status == CONTROL_CENTER_STATUS_READY) {
             mHeabPollCnt++;
 
             if (mHeabPollCnt >= 4) {
@@ -311,8 +307,6 @@ void Chronos::processMtsp(chronos_mtsp mtsp)
 
 void Chronos::processRcmm(chronos_rcmm rcmm)
 {
-    qDebug() << "RCMM RX";
-
     if (mObjectState != ISO_OBJECT_STATE_REMOTECONTROL) {
         qDebug() << "Ignored because car is not in remote control state";
         return;
@@ -361,7 +355,7 @@ void Chronos::processRcmm(chronos_rcmm rcmm)
                 qDebug() << "Unknown unit in RCMM message";
                 return;
             }
-		}
+        }
 
         if(rcmm.speedUnit == ISO_UNIT_TYPE_SPEED_METER_SECOND) {
             // This method takes speed in m/s and regulates the motor rpm. Steering -1 to 1.
