@@ -67,15 +67,7 @@ void Chronos::startTimerSlot()
     if (mPacket) {
         mPacket->setApActive(255, true);
 		mScenarioTimer.start();
-		startHeabTimer();
     }
-}
-
-void Chronos::startHeabTimer()
-{
-	if (mPacket) {
-		mLastHeabTimer.start();
-	}
 }
 
 void Chronos::connectionChanged(bool connected, QString address)
@@ -255,6 +247,10 @@ void Chronos::processStrt(chronos_strt strt)
         mStartTimer->start(strt.gps_ms_of_week - cTime);
         qDebug() << "Starting car in" << strt.gps_ms_of_week - cTime << "ms";
     }
+}
+
+void Chronos::noHeabAbort(){
+	mPacket->setApActive(255, false);
 }
 
 void Chronos::processHeab(chronos_heab heab)
