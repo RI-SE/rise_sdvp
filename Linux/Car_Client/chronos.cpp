@@ -70,6 +70,16 @@ void Chronos::startTimerSlot()
     }
 }
 
+void Chronos::abort()
+{
+	qDebug() << "Stopping car";
+	mObjectState = ISO_OBJECT_STATE_ABORT;
+
+	if (mPacket) {
+		mPacket->setApActive(255, false);
+	}
+}
+
 void Chronos::connectionChanged(bool connected, QString address)
 {
     if (connected) {
@@ -250,7 +260,7 @@ void Chronos::processStrt(chronos_strt strt)
 }
 
 void Chronos::noHeabAbort(){
-	mPacket->setApActive(255, false);
+	//mPacket->setApActive(255, false);
 }
 
 void Chronos::processHeab(chronos_heab heab)
@@ -272,22 +282,21 @@ void Chronos::processHeab(chronos_heab heab)
 				break;
 			case CONTROL_CENTER_STATUS_ABORT:
 				qDebug() << "ABORT IN HEAB";
-				mPacket->setApActive(255, false);
+				abort();
 				break;
 			case CONTROL_CENTER_STATUS_RUNNING:
 				qDebug() << "RUNNING IN HEAB";
 				break;
 			case CONTROL_CENTER_STATUS_TEST_DONE:	//!<
 				qDebug() << "TEST DONE IN HEAB";
-				mPacket->setApActive(255, false);
 				break;
 			case CONTROL_CENTER_STATUS_NORMAL_STOP:
 				qDebug() << "NORMAL STOP IN HEAB";
-				mPacket->setApActive(255, false);
 			default:
-				mPacket->setApActive(255, false);
 				break;
 		}
+	} else{
+		mPacket->setApActive(255, false);
 	}
     }
 
