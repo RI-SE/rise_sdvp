@@ -10,7 +10,7 @@ Chronos::Chronos(QObject *parent) : QObject(parent)
     mPacket = 0;
     mChronos = new ChronosComm(this);
     mStartTimer = new QTimer(this);
-    mObjectState = ISO_OBJECT_STATE_OFF;
+	mObjectState = ISO_OBJECT_STATE_OFF;
 
     mHeabPollCnt = 0;
     mChronos->setTransmitterId(9); //TODO: Set this properly
@@ -35,6 +35,8 @@ Chronos::Chronos(QObject *parent) : QObject(parent)
             this, SLOT(processOpro(chronos_opro)));
     connect(mChronos, SIGNAL(rcmmRx(chronos_rcmm)),
             this, SLOT(processRcmm(chronos_rcmm)));
+	connect(mChronos, SIGNAL(heabTimeOut),
+			this, SLOT(noHeabAbort()));
 
 }
 
@@ -64,8 +66,16 @@ void Chronos::startTimerSlot()
 
     if (mPacket) {
         mPacket->setApActive(255, true);
-        mScenarioTimer.start();
+		mScenarioTimer.start();
+		startHeabTimer();
     }
+}
+
+void Chronos::startHeabTimer()
+{
+	if (mPacket) {
+		mLastHeabTimer.start();
+	}
 }
 
 void Chronos::connectionChanged(bool connected, QString address)
@@ -252,18 +262,39 @@ void Chronos::processHeab(chronos_heab heab)
     (void)heab;
 
     if (mPacket) {
-		if (heab.status == 1) {
-            mHeabPollCnt++;
-
-            if (mHeabPollCnt >= 4) {
-				mHeabPollCnt = 0;
-                mPacket->getState(255);
-            }
-        } else {
-            mPacket->setApActive(255, false);
-        }
+		switch (heab.status) {
+			case CONTROL_CENTER_STATUS_INIT:
+					qDebug() << "INIT IN HEAB";
+				break;
+			case CONTROL_CENTER_STATUS_READY:
+					qDebug() << "READY IN HEAB";
+					mHeabPollCnt++;
+					if (mHeabPollCnt >= 4) {
+									mHeabPollCnt = 0;
+									mPacket->getState(255);
+					}
+				break;
+			case CONTROL_CENTER_STATUS_ABORT:
+				qDebug() << "ABORT IN HEAB";
+				mPacket->setApActive(255, false);
+				break;
+			case CONTROL_CENTER_STATUS_RUNNING:
+				qDebug() << "RUNNING IN HEAB";
+				break;
+			case CONTROL_CENTER_STATUS_TEST_DONE:	//!<
+				qDebug() << "TEST DONE IN HEAB";
+				mPacket->setApActive(255, false);
+				break;
+			case CONTROL_CENTER_STATUS_NORMAL_STOP:
+				qDebug() << "NORMAL STOP IN HEAB";
+				mPacket->setApActive(255, false);
+			default:
+				mPacket->setApActive(255, false);
+				break;
+		}
+	}
     }
-}
+
 
 void Chronos::processSypm(chronos_sypm sypm)
 {

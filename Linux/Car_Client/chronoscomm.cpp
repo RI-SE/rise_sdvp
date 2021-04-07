@@ -20,6 +20,8 @@
 #include <cmath>
 
 #define PIN_OUT 4
+#define HEARTBEAT_TIME_MS 1000
+
 
 ChronosComm::ChronosComm(QObject *parent) : QObject(parent)
 {
@@ -78,7 +80,6 @@ bool ChronosComm::startObject(QHostAddress addr)
     if (res) {
         mCommMode = COMM_MODE_OBJECT;
     }
-
     return res;
 }
 
@@ -458,6 +459,10 @@ void ChronosComm::tcpRx(QByteArray data)
 {
     uint8_t sender_id = 0;
 
+	if(mLastHeabTimer.elapsed() > HEARTBEAT_TIME_MS){
+		emit heabTimeOut();
+	}
+
     for (char c: data) {
 
         switch (mTcpState) {
@@ -810,8 +815,7 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
             quint16 value_len = vb.vbPopFrontUint16();
             switch(value_id) {
             case ISO_VALUE_ID_HEAB_STRUCT:
-                heab.gps_ms_of_week = vb.vbPopFrontUint32() / 4;
-                heab.status   = vb.vbPopFrontUint8();
+				mLastHeabTimer.restart();
                 emit heabRx(heab);
                 break;
             default:

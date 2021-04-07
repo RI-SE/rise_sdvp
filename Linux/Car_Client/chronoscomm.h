@@ -19,6 +19,7 @@
 #define CHRONOSCOMM_H
 
 #include <QObject>
+#include <QElapsedTimer>
 #include <QUdpSocket>
 #include <QTimer>
 #include <vbytearrayle.h>
@@ -384,6 +385,8 @@ signals:
     void insupRx(chronos_init_sup init_sup);
     void rcmmRx(chronos_rcmm rcmm);
 
+	void heabTimeOut();
+
 public slots:
 
 private slots:
@@ -412,6 +415,8 @@ private:
     quint32 mTcpLen;
     quint16 mTcpChecksum;
     VByteArrayLe mTcpData;
+
+	QElapsedTimer mLastHeabTimer;
 
     void mkChronosHeader(VByteArrayLe &vb,
                          quint8 transmitter_id,
