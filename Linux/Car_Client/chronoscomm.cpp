@@ -53,6 +53,12 @@ ChronosComm::ChronosComm(QObject *parent) : QObject(parent)
             this, SLOT(tcpInputError(QAbstractSocket::SocketError)));
 }
 
+void ChronosComm::startHeabTimer(){
+	qDebug() << "Started Heab Timer";
+	mLastHeabTimer.start();
+}
+
+
 bool ChronosComm::startObject(QHostAddress addr)
 {
     closeConnection();

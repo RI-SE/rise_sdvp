@@ -355,6 +355,7 @@ public:
     bool startSupervisor(QHostAddress addr = QHostAddress::Any);
     bool connectAsServer(QString address);
     void closeConnection();
+	void startHeabTimer();
     COMM_MODE getCommMode();
 
     void sendTraj(chronos_traj traj);

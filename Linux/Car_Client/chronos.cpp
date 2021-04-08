@@ -63,7 +63,7 @@ void Chronos::startTimerSlot()
 {
     qDebug() << "Starting car";
     mObjectState = ISO_OBJECT_STATE_RUNNING;
-
+	mChronos->startHeabTimer();
     if (mPacket) {
         mPacket->setApActive(255, true);
 		mScenarioTimer.start();
@@ -260,7 +260,8 @@ void Chronos::processStrt(chronos_strt strt)
 }
 
 void Chronos::noHeabAbort(){
-	//mPacket->setApActive(255, false);
+	qDebug() << "Heab timeout";
+	mPacket->setApActive(255, false);
 }
 
 void Chronos::processHeab(chronos_heab heab)
