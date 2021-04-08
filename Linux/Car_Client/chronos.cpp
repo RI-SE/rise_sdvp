@@ -297,10 +297,10 @@ void Chronos::processHeab(chronos_heab heab)
 				abort();
 			default:
 				qDebug()<< "Uknown Control center status: " << heab.status;
+				abort();
 				break;
 		}
 	} else{
-		qDebug()<< "mPacket not active";
 		abort();
 	}
     }

@@ -822,6 +822,8 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
             switch(value_id) {
             case ISO_VALUE_ID_HEAB_STRUCT:
 				mLastHeabTimer.restart();
+				heab.gps_ms_of_week = vb.vbPopFrontUint32() / 4;
+				heab.status   = vb.vbPopFrontUint8();
                 emit heabRx(heab);
                 break;
             default:
