@@ -35,7 +35,7 @@ Chronos::Chronos(QObject *parent) : QObject(parent)
             this, SLOT(processOpro(chronos_opro)));
     connect(mChronos, SIGNAL(rcmmRx(chronos_rcmm)),
             this, SLOT(processRcmm(chronos_rcmm)));
-	connect(mChronos, SIGNAL(heabTimeOut),
+	connect(mChronos, SIGNAL(heabTimeOut()),
 			this, SLOT(noHeabAbort()));
 
 }
@@ -78,6 +78,7 @@ void Chronos::abort()
 	if (mPacket) {
 		mPacket->setApActive(255, false);
 	}
+
 }
 
 void Chronos::connectionChanged(bool connected, QString address)
@@ -295,6 +296,7 @@ void Chronos::processHeab(chronos_heab heab)
 			case CONTROL_CENTER_STATUS_NORMAL_STOP:
 				qDebug() << "NORMAL STOP IN HEAB";
 				abort();
+				break;
 			default:
 				qDebug()<< "Uknown Control center status: " << heab.status;
 				abort();
@@ -302,7 +304,7 @@ void Chronos::processHeab(chronos_heab heab)
 		}
 	} else{
 		abort();
-	}
+		}
     }
 
 

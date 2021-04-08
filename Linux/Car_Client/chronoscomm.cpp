@@ -466,10 +466,11 @@ void ChronosComm::tcpRx(QByteArray data)
     uint8_t sender_id = 0;
 
 	if(mLastHeabTimer.elapsed() > HEARTBEAT_TIME_MS){
+		qDebug("Heab timeout!");
 		emit heabTimeOut();
 	}
 
-    for (char c: data) {
+	for (char c: data) {
 
         switch (mTcpState) {
         case 0: // first byte of sync word
