@@ -261,7 +261,7 @@ void Chronos::processStrt(chronos_strt strt)
 
 void Chronos::noHeabAbort(){
 	qDebug() << "Heab timeout";
-	mPacket->setApActive(255, false);
+	abort();
 }
 
 void Chronos::processHeab(chronos_heab heab)
@@ -290,14 +290,18 @@ void Chronos::processHeab(chronos_heab heab)
 				break;
 			case CONTROL_CENTER_STATUS_TEST_DONE:	//!<
 				qDebug() << "TEST DONE IN HEAB";
+				abort();
 				break;
 			case CONTROL_CENTER_STATUS_NORMAL_STOP:
 				qDebug() << "NORMAL STOP IN HEAB";
+				abort();
 			default:
+				qDebug()<< "Uknown Control center status: " << heab.status;
 				break;
 		}
 	} else{
-		mPacket->setApActive(255, false);
+		qDebug()<< "mPacket not active";
+		abort();
 	}
     }
 
