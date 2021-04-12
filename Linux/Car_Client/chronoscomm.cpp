@@ -1,4 +1,4 @@
-/*
+﻿/*
     Copyright 2018 Benjamin Vedder	benjamin@vedder.se
 
     This program is free software: you can redistribute it and/or modify
@@ -20,7 +20,7 @@
 #include <cmath>
 
 #define PIN_OUT 4
-#define HEARTBEAT_TIME_MS 1000
+#define HEARTBEAT_TIME_MS 100
 
 
 ChronosComm::ChronosComm(QObject *parent) : QObject(parent)
@@ -51,13 +51,25 @@ ChronosComm::ChronosComm(QObject *parent) : QObject(parent)
             this, SLOT(tcpInputDisconnected()));
     connect(mTcpSocket, SIGNAL(error(QAbstractSocket::SocketError)),
             this, SLOT(tcpInputError(QAbstractSocket::SocketError)));
+
+	mLastHeabReceivedTimer.invalidate();
+	mLastHeabTimer = new QTimer(this);
+	connect(mLastHeabTimer, SIGNAL(timeout()), this, SLOT(checkLastHeabRestart()));
+	mLastHeabTimer->start(HEARTBEAT_TIME_MS);
 }
 
-void ChronosComm::startHeabTimer(){
-	qDebug() << "Started Heab Timer";
-	mLastHeabTimer.start();
+void ChronosComm::checkLastHeabRestart(){
+	qDebug() << "Checking last heab received..";
+	if(mLastHeabReceivedTimer.isValid() && (mLastHeabReceivedTimer.elapsed() > HEARTBEAT_TIME_MS)){
+		qDebug()<< "HEAB timed out!";
+		emit heabTimeOut();
+	}
 }
 
+void ChronosComm::startHeabLastHeabReceivedTimer(){
+	qDebug() << "Starting Heab timer";
+	mLastHeabReceivedTimer.start();
+}
 
 bool ChronosComm::startObject(QHostAddress addr)
 {
@@ -465,11 +477,6 @@ void ChronosComm::tcpRx(QByteArray data)
 {
     uint8_t sender_id = 0;
 
-	if(mLastHeabTimer.elapsed() > HEARTBEAT_TIME_MS){
-		qDebug("Heab timeout!");
-		emit heabTimeOut();
-	}
-
 	for (char c: data) {
 
         switch (mTcpState) {
@@ -822,7 +829,7 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
             quint16 value_len = vb.vbPopFrontUint16();
             switch(value_id) {
             case ISO_VALUE_ID_HEAB_STRUCT:
-				mLastHeabTimer.restart();
+				mLastHeabReceivedTimer.restart();
 				heab.gps_ms_of_week = vb.vbPopFrontUint32() / 4;
 				heab.status   = vb.vbPopFrontUint8();
                 emit heabRx(heab);

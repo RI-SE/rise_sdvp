@@ -355,9 +355,7 @@ public:
     bool startSupervisor(QHostAddress addr = QHostAddress::Any);
     bool connectAsServer(QString address);
     void closeConnection();
-	void startHeabTimer();
     COMM_MODE getCommMode();
-
     void sendTraj(chronos_traj traj);
     void sendHeab(chronos_heab heab);
     void sendOsem(chronos_osem osem);
@@ -389,6 +387,8 @@ signals:
 	void heabTimeOut();
 
 public slots:
+	void startHeabLastHeabReceivedTimer();
+	void checkLastHeabRestart();
 
 private slots:
     void tcpRx(QByteArray data);
@@ -417,7 +417,8 @@ private:
     quint16 mTcpChecksum;
     VByteArrayLe mTcpData;
 
-	QElapsedTimer mLastHeabTimer;
+	QElapsedTimer mLastHeabReceivedTimer;
+	QTimer *mCheckLastHeabReceivedTime;
 
     void mkChronosHeader(VByteArrayLe &vb,
                          quint8 transmitter_id,

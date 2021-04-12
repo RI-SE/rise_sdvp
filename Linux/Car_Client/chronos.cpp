@@ -36,8 +36,7 @@ Chronos::Chronos(QObject *parent) : QObject(parent)
     connect(mChronos, SIGNAL(rcmmRx(chronos_rcmm)),
             this, SLOT(processRcmm(chronos_rcmm)));
 	connect(mChronos, SIGNAL(heabTimeOut()),
-			this, SLOT(noHeabAbort()));
-
+			this, SLOT(heabTimeOutAbort()) );
 }
 
 bool Chronos::startServer(PacketInterface *packet, QHostAddress addr)
@@ -63,7 +62,7 @@ void Chronos::startTimerSlot()
 {
     qDebug() << "Starting car";
     mObjectState = ISO_OBJECT_STATE_RUNNING;
-	mChronos->startHeabTimer();
+	mChronos->startHeabLastHeabReceivedTimer();
     if (mPacket) {
         mPacket->setApActive(255, true);
 		mScenarioTimer.start();
@@ -79,6 +78,11 @@ void Chronos::abort()
 		mPacket->setApActive(255, false);
 	}
 
+}
+
+void Chronos::heabTimeOutAbort(){
+	qDebug() << "Received abort signal...";
+	Chronos::abort();
 }
 
 void Chronos::connectionChanged(bool connected, QString address)
@@ -260,10 +264,7 @@ void Chronos::processStrt(chronos_strt strt)
     }
 }
 
-void Chronos::noHeabAbort(){
-	qDebug() << "Heab timeout";
-	abort();
-}
+
 
 void Chronos::processHeab(chronos_heab heab)
 {
