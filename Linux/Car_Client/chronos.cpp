@@ -273,10 +273,8 @@ void Chronos::processHeab(chronos_heab heab)
     if (mPacket) {
 		switch (heab.status) {
 		case CONTROL_CENTER_STATUS_INIT:
-				qDebug() << "INIT IN HEAB";
 			break;
 		case CONTROL_CENTER_STATUS_READY:
-				qDebug() << "READY IN HEAB";
 				mHeabPollCnt++;
 				if (mHeabPollCnt >= 4) {
 								mHeabPollCnt = 0;
@@ -284,18 +282,14 @@ void Chronos::processHeab(chronos_heab heab)
 				}
 			break;
 		case CONTROL_CENTER_STATUS_ABORT:
-			qDebug() << "ABORT IN HEAB";
 			abort();
 			break;
 		case CONTROL_CENTER_STATUS_RUNNING:
-			qDebug() << "RUNNING IN HEAB";
 			break;
 		case CONTROL_CENTER_STATUS_TEST_DONE:	//!<
-			qDebug() << "TEST DONE IN HEAB";
 			abort();
 			break;
 		case CONTROL_CENTER_STATUS_NORMAL_STOP:
-			qDebug() << "NORMAL STOP IN HEAB";
 			abort();
 			break;
 		default:
