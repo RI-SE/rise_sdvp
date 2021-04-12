@@ -418,7 +418,7 @@ private:
     VByteArrayLe mTcpData;
 
 	QElapsedTimer mLastHeabReceivedTimer;
-	QTimer *mCheckLastHeabReceivedTime;
+	QTimer *mLastHeabTimer;
 
     void mkChronosHeader(VByteArrayLe &vb,
                          quint8 transmitter_id,
