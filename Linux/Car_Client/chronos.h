@@ -20,8 +20,7 @@ public:
 
 private slots:
     void startTimerSlot();
-	void abort();
-	void heabTimeOutAbort();
+    void abort();
     void connectionChanged(bool connected, QString address);
     void stateReceived(quint8 id, CAR_STATE state);
 

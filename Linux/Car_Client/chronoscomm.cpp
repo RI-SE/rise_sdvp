@@ -21,6 +21,7 @@
 
 #define PIN_OUT 4
 #define HEARTBEAT_TIME_MS 100
+#define MAX_RCMM_PERIOD_MS 100
 
 
 ChronosComm::ChronosComm(QObject *parent) : QObject(parent)
@@ -56,19 +57,33 @@ ChronosComm::ChronosComm(QObject *parent) : QObject(parent)
 	mLastHeabTimer = new QTimer(this);
 	connect(mLastHeabTimer, SIGNAL(timeout()), this, SLOT(checkLastHeabRestart()));
 	mLastHeabTimer->start(HEARTBEAT_TIME_MS);
+
+    mLastRcmmReceivedTimer.invalidate();
+    mLastRcmmTimer = new QTimer(this);
+    connect(mLastRcmmTimer, SIGNAL(timeout()), this, SLOT(checkLastRcmmRestart()));
 }
 
 void ChronosComm::checkLastHeabRestart(){
-	qDebug() << "Checking last heab received..";
+    //qDebug() << "Checking last heab received..";
 	if(mLastHeabReceivedTimer.isValid() && (mLastHeabReceivedTimer.elapsed() > HEARTBEAT_TIME_MS)){
-		qDebug()<< "HEAB timed out!";
+        qDebug()<< "HEAB timed out!" << mLastHeabReceivedTimer.elapsed();
 		emit heabTimeOut();
 	}
 }
 
 void ChronosComm::startHeabLastHeabReceivedTimer(){
-	qDebug() << "Starting Heab timer";
+    //qDebug() << "Starting Heab timer";
 	mLastHeabReceivedTimer.start();
+}
+
+void ChronosComm::checkLastRcmmRestart(){
+    //qDebug() << "Checking last RCMM received..";
+
+    if(mLastRcmmReceivedTimer.isValid() && (mLastRcmmReceivedTimer.elapsed() > MAX_RCMM_PERIOD_MS)){
+        qDebug()<< "RCMM timed out! " << mLastRcmmReceivedTimer.elapsed();
+        mLastRcmmTimer->stop();
+        emit rcmmTimeOut();
+    }
 }
 
 bool ChronosComm::startObject(QHostAddress addr)
@@ -482,7 +497,7 @@ void ChronosComm::tcpRx(QByteArray data)
         switch (mTcpState) {
         case 0: // first byte of sync word
             if (!(c == ISO_PART_SYNC_WORD)) {
-                qDebug() << "Expected sync word byte 0";
+                //qDebug() << "Expected sync word byte 0"; // qqq temp
                 mTcpState = 0;
                 break;
             }
@@ -555,7 +570,7 @@ void ChronosComm::tcpRx(QByteArray data)
             mTcpState = 0;
 
             if (mTcpChecksum != 0) {
-                qWarning() << "Checksum calculation not implemented";
+                //qWarning() << "Checksum calculation not implemented";
             }
 
             decodeMsg(mTcpType, mTcpLen, mTcpData, sender_id);
@@ -849,9 +864,14 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
             quint16 value_id = vb.vbPopFrontUint16();
             quint16 value_len = vb.vbPopFrontUint16();
 
+            if(mLastRcmmReceivedTimer.isValid()) {
+                mLastRcmmReceivedTimer.restart();
+                //qDebug() << "Got RCMM - restart timer";
+            }
+
             switch(value_id) {
             case ISO_VALUE_ID_RCMM_CONTROL_STATUS:
-                qDebug() << "RCMM: ignoring control status value id:" << QString::number(value_id, 16);
+                //qDebug() << "RCMM: ignoring control status value id:" << QString::number(value_id, 16);
                 vb.remove(0, value_len);
                 break;
             case ISO_VALUE_ID_RCMM_STEERING_ANGLE:
@@ -874,7 +894,7 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
                 rcmm.command = vb.vbPopFrontUint8();
                 break;
             default:
-                qDebug() << "RCMM: Unknown value id:" << QString::number(value_id, 16);
+                //qDebug() << "RCMM: Unknown value id:" << value_id;
                 vb.remove(0, value_len);
                 break;
             }
@@ -995,6 +1015,17 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
             switch(value_id) {
             case ISO_VALUE_ID_STATE_CHANGE_REQ:
                 ostm.state = vb.vbPopFrontUint8();
+                if(ostm.state == ISO_OBJECT_STATE_REMOTECONTROL) {
+                    qDebug() << "Start RCMM timer";
+                    mLastRcmmTimer->start(MAX_RCMM_PERIOD_MS);
+                    mLastRcmmReceivedTimer.start();
+                }
+                else if(ostm.state == ISO_OBJECT_STATE_DISARMED) {
+                    if(mLastRcmmTimer->isActive()) {
+                        mLastRcmmTimer->stop();
+                        qDebug() << "Stop RCMM timer";
+                    }
+                }
                 break;
 
             default:

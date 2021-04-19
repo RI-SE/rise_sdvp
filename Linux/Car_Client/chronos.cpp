@@ -36,7 +36,9 @@ Chronos::Chronos(QObject *parent) : QObject(parent)
     connect(mChronos, SIGNAL(rcmmRx(chronos_rcmm)),
             this, SLOT(processRcmm(chronos_rcmm)));
 	connect(mChronos, SIGNAL(heabTimeOut()),
-			this, SLOT(Chronos::abort()) );
+            this, SLOT(abort()) );
+    connect(mChronos, SIGNAL(rcmmTimeOut()),
+            this, SLOT(abort()));
 }
 
 bool Chronos::startServer(PacketInterface *packet, QHostAddress addr)
@@ -345,7 +347,7 @@ void Chronos::processMtsp(chronos_mtsp mtsp)
 
 void Chronos::processRcmm(chronos_rcmm rcmm)
 {
-    qDebug() << "RCMM RX";
+    //qDebug() << "RCMM RX";
 
     if (mObjectState != ISO_OBJECT_STATE_REMOTECONTROL) {
         qDebug() << "Ignored because car is not in remote control state";
@@ -403,6 +405,7 @@ void Chronos::processRcmm(chronos_rcmm rcmm)
         }
         else {
             // Speed -100 to 100. Steering -1 to 1
+            //qDebug() << "Speed / Steering " << setSpeed << " / " << setSteering;
             mPacket->setRcControlCurrent(ID_ALL, setSpeed, setSteering);
         }
     }
