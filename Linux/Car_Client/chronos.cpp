@@ -348,7 +348,7 @@ void Chronos::processMtsp(chronos_mtsp mtsp)
 void Chronos::processRcmm(chronos_rcmm rcmm)
 {
     if (mObjectState != ISO_OBJECT_STATE_REMOTECONTROL) {
-        qDebug() << "Ignored because car is not in remote control state";
+        qDebug() << "RCMM ignored because car is not in remote control state";
         return;
     }
 

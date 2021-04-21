@@ -891,7 +891,7 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
                 rcmm.command = vb.vbPopFrontUint8();
                 break;
             default:
-                //qDebug() << "RCMM: Unknown value id:" << value_id;
+                qDebug() << "RCMM: Unknown value id:" << value_id;
                 vb.remove(0, value_len);
                 break;
             }
