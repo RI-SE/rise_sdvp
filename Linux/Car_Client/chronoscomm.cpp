@@ -56,11 +56,11 @@ ChronosComm::ChronosComm(QObject *parent) : QObject(parent)
 	mLastHeabReceivedTimer.invalidate();
 	mLastHeabTimer = new QTimer(this);
 	connect(mLastHeabTimer, SIGNAL(timeout()), this, SLOT(checkLastHeabRestart()));
-  mLastHeabTimer->start(MAX_HEAB_PERIOD_MS);
+    mLastHeabTimer->start(MAX_HEAB_PERIOD_MS);
   
-  mLastRcmmReceivedTimer.invalidate();
-  mRemoteControlStateTimer = new QTimer(this);
-  connect(mRemoteControlStateTimer, SIGNAL(timeout()), this, SLOT(checkRcmmLastRecievedTimer()));
+    mLastRcmmReceivedTimer.invalidate();
+    mRemoteControlStateTimer = new QTimer(this);
+    connect(mRemoteControlStateTimer, SIGNAL(timeout()), this, SLOT(checkRcmmLastRecievedTimer()));
 }
 
 void ChronosComm::checkLastHeabRestart(){
