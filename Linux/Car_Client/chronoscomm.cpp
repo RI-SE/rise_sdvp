@@ -20,7 +20,7 @@
 #include <cmath>
 
 #define PIN_OUT 4
-#define HEARTBEAT_TIME_MS 100
+#define MAX_HEAB_PERIOD_MS 100
 #define MAX_RCMM_PERIOD_MS 100
 
 
@@ -56,17 +56,17 @@ ChronosComm::ChronosComm(QObject *parent) : QObject(parent)
 	mLastHeabReceivedTimer.invalidate();
 	mLastHeabTimer = new QTimer(this);
 	connect(mLastHeabTimer, SIGNAL(timeout()), this, SLOT(checkLastHeabRestart()));
-	mLastHeabTimer->start(HEARTBEAT_TIME_MS);
-
-    mLastRcmmReceivedTimer.invalidate();
-    mRemoteControlStateTimer = new QTimer(this);
-    connect(mRemoteControlStateTimer, SIGNAL(timeout()), this, SLOT(checkRcmmLastRecievedTimer()));
+  mLastHeabTimer->start(MAX_HEAB_PERIOD_MS);
+  
+  mLastRcmmReceivedTimer.invalidate();
+  mRemoteControlStateTimer = new QTimer(this);
+  connect(mRemoteControlStateTimer, SIGNAL(timeout()), this, SLOT(checkRcmmLastRecievedTimer()));
 }
 
 void ChronosComm::checkLastHeabRestart(){
-    //qDebug() << "Checking last heab received..";
-	if(mLastHeabReceivedTimer.isValid() && (mLastHeabReceivedTimer.elapsed() > HEARTBEAT_TIME_MS)){
-        qDebug()<< "HEAB timed out!" << mLastHeabReceivedTimer.elapsed();
+	//qDebug() << "Checking last heab received..";
+	if(mLastHeabReceivedTimer.isValid() && (mLastHeabReceivedTimer.elapsed() > MAX_HEAB_PERIOD_MS)){
+		qDebug()<< "HEAB timed out!" << mLastHeabReceivedTimer.elapsed();
 		emit heabTimeOut();
 	}
 }
