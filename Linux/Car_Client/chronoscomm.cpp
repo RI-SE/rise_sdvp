@@ -495,7 +495,7 @@ void ChronosComm::tcpRx(QByteArray data)
         switch (mTcpState) {
         case 0: // first byte of sync word
             if (!(c == ISO_PART_SYNC_WORD)) {
-                //qDebug() << "Expected sync word byte 0"; // qqq temp
+                qDebug() << "Expected sync word byte 0";
                 mTcpState = 0;
                 break;
             }
@@ -568,7 +568,7 @@ void ChronosComm::tcpRx(QByteArray data)
             mTcpState = 0;
 
             if (mTcpChecksum != 0) {
-                //qWarning() << "Checksum calculation not implemented";
+                qWarning() << "Checksum calculation not implemented";
             }
 
             decodeMsg(mTcpType, mTcpLen, mTcpData, sender_id);
