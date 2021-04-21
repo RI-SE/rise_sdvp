@@ -20,7 +20,7 @@
 #include <cmath>
 
 #define PIN_OUT 4
-#define HEARTBEAT_TIME_MS 100
+#define MAX_HEAB_PERIOD_MS 1000 100
 
 
 ChronosComm::ChronosComm(QObject *parent) : QObject(parent)
@@ -55,12 +55,12 @@ ChronosComm::ChronosComm(QObject *parent) : QObject(parent)
 	mLastHeabReceivedTimer.invalidate();
 	mLastHeabTimer = new QTimer(this);
 	connect(mLastHeabTimer, SIGNAL(timeout()), this, SLOT(checkLastHeabRestart()));
-	mLastHeabTimer->start(HEARTBEAT_TIME_MS);
+	mLastHeabTimer->start(MAX_HEAB_PERIOD_MS);
 }
 
 void ChronosComm::checkLastHeabRestart(){
 	qDebug() << "Checking last heab received..";
-	if(mLastHeabReceivedTimer.isValid() && (mLastHeabReceivedTimer.elapsed() > HEARTBEAT_TIME_MS)){
+	if(mLastHeabReceivedTimer.isValid() && (mLastHeabReceivedTimer.elapsed() > MAX_HEAB_PERIOD_MS)){
 		qDebug()<< "HEAB timed out!";
 		emit heabTimeOut();
 	}
