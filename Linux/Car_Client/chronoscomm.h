@@ -390,7 +390,7 @@ signals:
 public slots:
 	void startHeabLastHeabReceivedTimer();
 	void checkLastHeabRestart();
-    void checkLastRcmmRestart();
+    void checkRcmmLastRecievedTimer();
 
 private slots:
     void tcpRx(QByteArray data);
@@ -423,7 +423,7 @@ private:
 	QTimer *mLastHeabTimer;
 
     QElapsedTimer mLastRcmmReceivedTimer;
-    QTimer *mLastRcmmTimer;
+    QTimer *mRemoteControlStateTimer;
 
     void mkChronosHeader(VByteArrayLe &vb,
                          quint8 transmitter_id,

@@ -59,8 +59,8 @@ ChronosComm::ChronosComm(QObject *parent) : QObject(parent)
 	mLastHeabTimer->start(HEARTBEAT_TIME_MS);
 
     mLastRcmmReceivedTimer.invalidate();
-    mLastRcmmTimer = new QTimer(this);
-    connect(mLastRcmmTimer, SIGNAL(timeout()), this, SLOT(checkLastRcmmRestart()));
+    mRemoteControlStateTimer = new QTimer(this);
+    connect(mRemoteControlStateTimer, SIGNAL(timeout()), this, SLOT(checkRcmmLastRecievedTimer()));
 }
 
 void ChronosComm::checkLastHeabRestart(){
@@ -76,12 +76,10 @@ void ChronosComm::startHeabLastHeabReceivedTimer(){
 	mLastHeabReceivedTimer.start();
 }
 
-void ChronosComm::checkLastRcmmRestart(){
-    //qDebug() << "Checking last RCMM received..";
-
+void ChronosComm::checkRcmmLastRecievedTimer(){
     if(mLastRcmmReceivedTimer.isValid() && (mLastRcmmReceivedTimer.elapsed() > MAX_RCMM_PERIOD_MS)){
         qDebug()<< "RCMM timed out! " << mLastRcmmReceivedTimer.elapsed();
-        mLastRcmmTimer->stop();
+        mRemoteControlStateTimer->stop();
         emit rcmmTimeOut();
     }
 }
@@ -866,7 +864,6 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
 
             if(mLastRcmmReceivedTimer.isValid()) {
                 mLastRcmmReceivedTimer.restart();
-                //qDebug() << "Got RCMM - restart timer";
             }
 
             switch(value_id) {
@@ -1016,14 +1013,12 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
             case ISO_VALUE_ID_STATE_CHANGE_REQ:
                 ostm.state = vb.vbPopFrontUint8();
                 if(ostm.state == ISO_OBJECT_STATE_REMOTECONTROL) {
-                    qDebug() << "Start RCMM timer";
-                    mLastRcmmTimer->start(MAX_RCMM_PERIOD_MS);
+                    mRemoteControlStateTimer->start(MAX_RCMM_PERIOD_MS);
                     mLastRcmmReceivedTimer.start();
                 }
                 else if(ostm.state == ISO_OBJECT_STATE_DISARMED) {
-                    if(mLastRcmmTimer->isActive()) {
-                        mLastRcmmTimer->stop();
-                        qDebug() << "Stop RCMM timer";
+                    if(mRemoteControlStateTimer->isActive()) {
+                        mRemoteControlStateTimer->stop();
                     }
                 }
                 break;
