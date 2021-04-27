@@ -20,8 +20,11 @@
 #include <cmath>
 
 #define PIN_OUT 4
-#define MAX_HEAB_PERIOD_MS 100
-#define MAX_RCMM_PERIOD_MS 100
+#define MAX_HEAB_PERIOD_MS 5000 // temp, for testing purposes
+#define ABORT_HEAB_PERIOD_MS 10
+
+#define MAX_RCMM_PERIOD_MS 5000 // temp, for testing purposes
+#define REMOTE_CTRL_CHECK_LAST_RCMM_PERIOD_MS 10
 
 
 ChronosComm::ChronosComm(QObject *parent) : QObject(parent)
@@ -56,15 +59,14 @@ ChronosComm::ChronosComm(QObject *parent) : QObject(parent)
 	mLastHeabReceivedTimer.invalidate();
 	mLastHeabTimer = new QTimer(this);
 	connect(mLastHeabTimer, SIGNAL(timeout()), this, SLOT(checkLastHeabRestart()));
-    mLastHeabTimer->start(MAX_HEAB_PERIOD_MS);
+    mLastHeabTimer->start(ABORT_HEAB_PERIOD_MS);
   
-    mLastRcmmReceivedTimer.invalidate();
+    mLastRcmmReceivedElapsedTimer.invalidate();
     mRemoteControlStateTimer = new QTimer(this);
     connect(mRemoteControlStateTimer, SIGNAL(timeout()), this, SLOT(checkRcmmLastRecievedTimer()));
 }
 
 void ChronosComm::checkLastHeabRestart(){
-	//qDebug() << "Checking last heab received..";
 	if(mLastHeabReceivedTimer.isValid() && (mLastHeabReceivedTimer.elapsed() > MAX_HEAB_PERIOD_MS)){
 		qDebug()<< "HEAB timed out!" << mLastHeabReceivedTimer.elapsed();
 		emit heabTimeOut();
@@ -77,8 +79,8 @@ void ChronosComm::startHeabLastHeabReceivedTimer(){
 }
 
 void ChronosComm::checkRcmmLastRecievedTimer(){
-    if(mLastRcmmReceivedTimer.isValid() && (mLastRcmmReceivedTimer.elapsed() > MAX_RCMM_PERIOD_MS)){
-        qDebug()<< "RCMM timed out! " << mLastRcmmReceivedTimer.elapsed();
+    if(mLastRcmmReceivedElapsedTimer.isValid() && (mLastRcmmReceivedElapsedTimer.elapsed() > MAX_RCMM_PERIOD_MS)){
+        qDebug()<< "RCMM timed out! " << mLastRcmmReceivedElapsedTimer.elapsed();
         mRemoteControlStateTimer->stop();
         emit rcmmTimeOut();
     }
@@ -862,8 +864,8 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
             quint16 value_id = vb.vbPopFrontUint16();
             quint16 value_len = vb.vbPopFrontUint16();
 
-            if(mLastRcmmReceivedTimer.isValid()) {
-                mLastRcmmReceivedTimer.restart();
+            if(mLastRcmmReceivedElapsedTimer.isValid()) {
+                mLastRcmmReceivedElapsedTimer.start();
             }
 
             switch(value_id) {
@@ -891,7 +893,7 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
                 rcmm.command = vb.vbPopFrontUint8();
                 break;
             default:
-                qDebug() << "RCMM: Unknown value id:" << value_id;
+                qDebug() << "RCMM: Unknown value id:" << value_id; // qqq temp
                 vb.remove(0, value_len);
                 break;
             }
@@ -1013,10 +1015,12 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
             case ISO_VALUE_ID_STATE_CHANGE_REQ:
                 ostm.state = vb.vbPopFrontUint8();
                 if(ostm.state == ISO_OBJECT_STATE_REMOTECONTROL) {
-                    mRemoteControlStateTimer->start(MAX_RCMM_PERIOD_MS);
-                    mLastRcmmReceivedTimer.start();
+                    qDebug() << "OSTM: ISO_OBJECT_STATE_REMOTECONTROL";
+                    mRemoteControlStateTimer->start(REMOTE_CTRL_CHECK_LAST_RCMM_PERIOD_MS);
+                    mLastRcmmReceivedElapsedTimer.start();
                 }
                 else if(ostm.state == ISO_OBJECT_STATE_DISARMED) {
+                    qDebug() << "OSTM: ISO_OBJECT_STATE_DISARMED";
                     if(mRemoteControlStateTimer->isActive()) {
                         mRemoteControlStateTimer->stop();
                     }

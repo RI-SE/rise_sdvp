@@ -422,7 +422,7 @@ private:
 	QElapsedTimer mLastHeabReceivedTimer;
 	QTimer *mLastHeabTimer;
 
-    QElapsedTimer mLastRcmmReceivedTimer;
+    QElapsedTimer mLastRcmmReceivedElapsedTimer;
     QTimer *mRemoteControlStateTimer;
 
     void mkChronosHeader(VByteArrayLe &vb,
