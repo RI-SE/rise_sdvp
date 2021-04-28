@@ -606,7 +606,10 @@ void CarClient::packetDataToSend(QByteArray &data)
             a.py = vb.vbPopFrontDouble32Auto();
             a.height = vb.vbPopFrontDouble32Auto();
             mUwbAnchorsNow.append(a);
-        }
+		}else if (cmd == CMD_RC_CONTROL) {
+			qDebug() << "Do something to evaluate if data in package should be applied or not";
+
+		}
     }
 
     if (!packetConsumed) {
