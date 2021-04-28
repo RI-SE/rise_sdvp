@@ -5,6 +5,8 @@
 #include <cmath>
 #include <QDateTime>
 
+#define MAX_SPEED_M_S 5
+
 Chronos::Chronos(QObject *parent) : QObject(parent)
 {
     mPacket = 0;
@@ -399,7 +401,7 @@ void Chronos::processRcmm(chronos_rcmm rcmm)
 
         if(rcmm.speedUnit == ISO_UNIT_TYPE_SPEED_METER_SECOND) {
             // This method takes speed in m/s and regulates the motor rpm. Steering -1 to 1.
-            mPacket->setRcControlPid(ID_ALL, setSpeed, setSteering);
+			mPacket->setRcControlPid(ID_ALL, std::max(-MAX_SPEED_M_S, std::min(setSpeed, MAX_SPEED_M_S)), setSteering);
         }
         else {
             // Speed -100 to 100. Steering -1 to 1
