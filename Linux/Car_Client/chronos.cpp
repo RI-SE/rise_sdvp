@@ -5,7 +5,7 @@
 #include <cmath>
 #include <QDateTime>
 
-#define MAX_SPEED_M_S 5
+#define MAX_SPEED_M_S 5.0
 
 Chronos::Chronos(QObject *parent) : QObject(parent)
 {
@@ -356,7 +356,7 @@ void Chronos::processRcmm(chronos_rcmm rcmm)
 
     if(mPacket) {
         double setSteering = 0;
-        double setSpeed = 0;
+		double setSpeed = 0;
 
         // Fill steering value
         if (rcmm.steering != ISO_STEERING_ANGLE_UNAVAILABLE_VALUE) {
@@ -388,7 +388,7 @@ void Chronos::processRcmm(chronos_rcmm rcmm)
         // Fill speed value
         if (rcmm.speed != ISO_SPEED_UNAVAILABLE_VALUE) {
             if(rcmm.speedUnit == ISO_UNIT_TYPE_SPEED_METER_SECOND) {
-                setSpeed = rcmm.speed / ISO_SPEED_ONE_METER_PER_SECOND_VALUE;
+				setSpeed = rcmm.speed ;
             }
             else if(rcmm.speedUnit == ISO_UNIT_TYPE_SPEED_PERCENTAGE){
                 setSpeed = rcmm.speed;
@@ -401,7 +401,8 @@ void Chronos::processRcmm(chronos_rcmm rcmm)
 
         if(rcmm.speedUnit == ISO_UNIT_TYPE_SPEED_METER_SECOND) {
             // This method takes speed in m/s and regulates the motor rpm. Steering -1 to 1.
-			mPacket->setRcControlPid(ID_ALL, std::max(-MAX_SPEED_M_S, std::min(setSpeed, MAX_SPEED_M_S)), setSteering);
+			double clampedSpeed = std::max(-MAX_SPEED_M_S, std::min(setSpeed, MAX_SPEED_M_S));
+			mPacket->setRcControlPid(ID_ALL, clampedSpeed, setSteering);
         }
         else {
             // Speed -100 to 100. Steering -1 to 1
