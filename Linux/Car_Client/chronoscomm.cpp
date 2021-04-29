@@ -20,10 +20,10 @@
 #include <cmath>
 
 #define PIN_OUT 4
-#define MAX_HEAB_PERIOD_MS 5000 // temp, for testing purposes
+#define MAX_HEAB_PERIOD_MS 150
 #define ABORT_HEAB_PERIOD_MS 10
 
-#define MAX_RCMM_PERIOD_MS 5000 // temp, for testing purposes
+#define MAX_RCMM_PERIOD_MS 150
 #define REMOTE_CTRL_CHECK_LAST_RCMM_PERIOD_MS 10
 
 
@@ -67,10 +67,10 @@ ChronosComm::ChronosComm(QObject *parent) : QObject(parent)
 }
 
 void ChronosComm::checkLastHeabRestart(){
-	if(mLastHeabReceivedTimer.isValid() && (mLastHeabReceivedTimer.elapsed() > MAX_HEAB_PERIOD_MS)){
-		qDebug()<< "HEAB timed out!" << mLastHeabReceivedTimer.elapsed();
-		emit heabTimeOut();
-	}
+    if(mLastHeabReceivedTimer.isValid() && (mLastHeabReceivedTimer.elapsed() > MAX_HEAB_PERIOD_MS)){
+        qDebug()<< "HEAB timed out!" << mLastHeabReceivedTimer.elapsed();
+        emit heabTimeOut();
+    }
 }
 
 void ChronosComm::startHeabLastHeabReceivedTimer(){
@@ -572,7 +572,6 @@ void ChronosComm::tcpRx(QByteArray data)
             if (mTcpChecksum != 0) {
                 qWarning() << "Checksum calculation not implemented";
             }
-
             decodeMsg(mTcpType, mTcpLen, mTcpData, sender_id);
             break;
         default:
@@ -870,7 +869,7 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
 
             switch(value_id) {
             case ISO_VALUE_ID_RCMM_CONTROL_STATUS:
-                //qDebug() << "RCMM: ignoring control status value id:" << QString::number(value_id, 16);
+                qDebug() << "RCMM: ignoring control status value id:" << QString::number(value_id, 16);
                 vb.remove(0, value_len);
                 break;
             case ISO_VALUE_ID_RCMM_STEERING_ANGLE:
@@ -893,7 +892,7 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
                 rcmm.command = vb.vbPopFrontUint8();
                 break;
             default:
-                qDebug() << "RCMM: Unknown value id:" << value_id; // qqq temp
+                qDebug() << "RCMM: Unknown value id:" << value_id;
                 vb.remove(0, value_len);
                 break;
             }
