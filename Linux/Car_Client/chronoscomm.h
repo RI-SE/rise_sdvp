@@ -385,10 +385,12 @@ signals:
     void rcmmRx(chronos_rcmm rcmm);
 
 	void heabTimeOut();
+    void rcmmTimeOut();
 
 public slots:
 	void startHeabLastHeabReceivedTimer();
 	void checkLastHeabRestart();
+    void checkRcmmLastRecievedTimer();
 
 private slots:
     void tcpRx(QByteArray data);
@@ -419,6 +421,9 @@ private:
 
 	QElapsedTimer mLastHeabReceivedTimer;
 	QTimer *mLastHeabTimer;
+
+    QElapsedTimer mLastRcmmReceivedElapsedTimer;
+    QTimer *mRemoteControlStateTimer;
 
     void mkChronosHeader(VByteArrayLe &vb,
                          quint8 transmitter_id,
