@@ -869,7 +869,7 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
 
             switch(value_id) {
             case ISO_VALUE_ID_RCMM_CONTROL_STATUS:
-                qDebug() << "RCMM: ignoring control status value id:" << QString::number(value_id, 16);
+                // Ignore, since this value id will be removed from ISO-22133
                 vb.remove(0, value_len);
                 break;
             case ISO_VALUE_ID_RCMM_STEERING_ANGLE:
