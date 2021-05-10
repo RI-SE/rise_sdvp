@@ -1,4 +1,4 @@
-/*
+﻿/*
     Copyright 2018 Benjamin Vedder	benjamin@vedder.se
 
     This program is free software: you can redistribute it and/or modify
@@ -20,6 +20,12 @@
 #include <cmath>
 
 #define PIN_OUT 4
+#define MAX_HEAB_PERIOD_MS 150
+#define ABORT_HEAB_PERIOD_MS 10
+
+#define MAX_RCMM_PERIOD_MS 150
+#define REMOTE_CTRL_CHECK_LAST_RCMM_PERIOD_MS 10
+
 
 ChronosComm::ChronosComm(QObject *parent) : QObject(parent)
 {
@@ -49,6 +55,35 @@ ChronosComm::ChronosComm(QObject *parent) : QObject(parent)
             this, SLOT(tcpInputDisconnected()));
     connect(mTcpSocket, SIGNAL(error(QAbstractSocket::SocketError)),
             this, SLOT(tcpInputError(QAbstractSocket::SocketError)));
+
+	mLastHeabReceivedTimer.invalidate();
+	mLastHeabTimer = new QTimer(this);
+	connect(mLastHeabTimer, SIGNAL(timeout()), this, SLOT(checkLastHeabRestart()));
+    mLastHeabTimer->start(ABORT_HEAB_PERIOD_MS);
+  
+    mLastRcmmReceivedElapsedTimer.invalidate();
+    mRemoteControlStateTimer = new QTimer(this);
+    connect(mRemoteControlStateTimer, SIGNAL(timeout()), this, SLOT(checkRcmmLastRecievedTimer()));
+}
+
+void ChronosComm::checkLastHeabRestart(){
+    if(mLastHeabReceivedTimer.isValid() && (mLastHeabReceivedTimer.elapsed() > MAX_HEAB_PERIOD_MS)){
+        qDebug()<< "HEAB timed out!" << mLastHeabReceivedTimer.elapsed();
+        emit heabTimeOut();
+    }
+}
+
+void ChronosComm::startHeabLastHeabReceivedTimer(){
+    //qDebug() << "Starting Heab timer";
+	mLastHeabReceivedTimer.start();
+}
+
+void ChronosComm::checkRcmmLastRecievedTimer(){
+    if(mLastRcmmReceivedElapsedTimer.isValid() && (mLastRcmmReceivedElapsedTimer.elapsed() > MAX_RCMM_PERIOD_MS)){
+        qDebug()<< "RCMM timed out! " << mLastRcmmReceivedElapsedTimer.elapsed();
+        mRemoteControlStateTimer->stop();
+        emit rcmmTimeOut();
+    }
 }
 
 bool ChronosComm::startObject(QHostAddress addr)
@@ -78,7 +113,6 @@ bool ChronosComm::startObject(QHostAddress addr)
     if (res) {
         mCommMode = COMM_MODE_OBJECT;
     }
-
     return res;
 }
 
@@ -458,7 +492,7 @@ void ChronosComm::tcpRx(QByteArray data)
 {
     uint8_t sender_id = 0;
 
-    for (char c: data) {
+	for (char c: data) {
 
         switch (mTcpState) {
         case 0: // first byte of sync word
@@ -538,7 +572,6 @@ void ChronosComm::tcpRx(QByteArray data)
             if (mTcpChecksum != 0) {
                 qWarning() << "Checksum calculation not implemented";
             }
-
             decodeMsg(mTcpType, mTcpLen, mTcpData, sender_id);
             break;
         default:
@@ -810,8 +843,9 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
             quint16 value_len = vb.vbPopFrontUint16();
             switch(value_id) {
             case ISO_VALUE_ID_HEAB_STRUCT:
-                heab.gps_ms_of_week = vb.vbPopFrontUint32() / 4;
-                heab.status   = vb.vbPopFrontUint8();
+				mLastHeabReceivedTimer.restart();
+				heab.gps_ms_of_week = vb.vbPopFrontUint32() / 4;
+				heab.status   = vb.vbPopFrontUint8();
                 emit heabRx(heab);
                 break;
             default:
@@ -828,6 +862,10 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
         while (!vb.isEmpty()) {
             quint16 value_id = vb.vbPopFrontUint16();
             quint16 value_len = vb.vbPopFrontUint16();
+
+            if(mLastRcmmReceivedElapsedTimer.isValid()) {
+                mLastRcmmReceivedElapsedTimer.start();
+            }
 
             switch(value_id) {
             case ISO_VALUE_ID_RCMM_CONTROL_STATUS:
@@ -854,7 +892,7 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
                 rcmm.command = vb.vbPopFrontUint8();
                 break;
             default:
-                qDebug() << "RCMM: Unknown value id:" << QString::number(value_id, 16);
+                qDebug() << "RCMM: Unknown value id:" << value_id;
                 vb.remove(0, value_len);
                 break;
             }
@@ -975,6 +1013,17 @@ bool ChronosComm::decodeMsg(quint16 type, quint32 len, QByteArray payload, uint8
             switch(value_id) {
             case ISO_VALUE_ID_STATE_CHANGE_REQ:
                 ostm.state = vb.vbPopFrontUint8();
+                if(ostm.state == ISO_OBJECT_STATE_REMOTECONTROL) {
+                    qDebug() << "OSTM: ISO_OBJECT_STATE_REMOTECONTROL";
+                    mRemoteControlStateTimer->start(REMOTE_CTRL_CHECK_LAST_RCMM_PERIOD_MS);
+                    mLastRcmmReceivedElapsedTimer.start();
+                }
+                else if(ostm.state == ISO_OBJECT_STATE_DISARMED) {
+                    qDebug() << "OSTM: ISO_OBJECT_STATE_DISARMED";
+                    if(mRemoteControlStateTimer->isActive()) {
+                        mRemoteControlStateTimer->stop();
+                    }
+                }
                 break;
 
             default:

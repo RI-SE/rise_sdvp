@@ -19,6 +19,7 @@
 #define CHRONOSCOMM_H
 
 #include <QObject>
+#include <QElapsedTimer>
 #include <QUdpSocket>
 #include <QTimer>
 #include <vbytearrayle.h>
@@ -55,6 +56,16 @@ typedef enum {
     ISO_UNIT_TYPE_SPEED_METER_SECOND = 2,
     ISO_UNIT_TYPE_SPEED_PERCENTAGE = 3
 } ISO_UNIT_TYPE;
+
+/*! HEAB control center statuses */
+typedef enum {
+	CONTROL_CENTER_STATUS_INIT = 0x00,			//!<
+	CONTROL_CENTER_STATUS_READY = 0x01,			//!<
+	CONTROL_CENTER_STATUS_ABORT = 0x02,			//!<
+	CONTROL_CENTER_STATUS_RUNNING = 0x03,		//!<
+	CONTROL_CENTER_STATUS_TEST_DONE = 0x04,		//!<
+	CONTROL_CENTER_STATUS_NORMAL_STOP = 0x05	//!<
+} ControlCenterStatusType;
 
 typedef enum {
     CONTROL_CENTER_STATUS_INIT = 0x00,
@@ -360,7 +371,6 @@ public:
     bool connectAsServer(QString address);
     void closeConnection();
     COMM_MODE getCommMode();
-
     void sendTraj(chronos_traj traj);
     void sendHeab(chronos_heab heab);
     void sendOsem(chronos_osem osem);
@@ -389,7 +399,13 @@ signals:
     void insupRx(chronos_init_sup init_sup);
     void rcmmRx(chronos_rcmm rcmm);
 
+	void heabTimeOut();
+    void rcmmTimeOut();
+
 public slots:
+	void startHeabLastHeabReceivedTimer();
+	void checkLastHeabRestart();
+    void checkRcmmLastRecievedTimer();
 
 private slots:
     void tcpRx(QByteArray data);
@@ -417,6 +433,12 @@ private:
     quint32 mTcpLen;
     quint16 mTcpChecksum;
     VByteArrayLe mTcpData;
+
+	QElapsedTimer mLastHeabReceivedTimer;
+	QTimer *mLastHeabTimer;
+
+    QElapsedTimer mLastRcmmReceivedElapsedTimer;
+    QTimer *mRemoteControlStateTimer;
 
     void mkChronosHeader(VByteArrayLe &vb,
                          quint8 transmitter_id,

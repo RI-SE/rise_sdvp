@@ -10,7 +10,7 @@ Chronos::Chronos(QObject *parent) : QObject(parent)
     mPacket = 0;
     mChronos = new ChronosComm(this);
     mStartTimer = new QTimer(this);
-    mObjectState = ISO_OBJECT_STATE_OFF;
+	mObjectState = ISO_OBJECT_STATE_OFF;
 
     mHeabPollCnt = 0;
     mChronos->setTransmitterId(9); //TODO: Set this properly
@@ -35,7 +35,10 @@ Chronos::Chronos(QObject *parent) : QObject(parent)
             this, SLOT(processOpro(chronos_opro)));
     connect(mChronos, SIGNAL(rcmmRx(chronos_rcmm)),
             this, SLOT(processRcmm(chronos_rcmm)));
-
+	connect(mChronos, SIGNAL(heabTimeOut()),
+            this, SLOT(abort()) );
+    connect(mChronos, SIGNAL(rcmmTimeOut()),
+            this, SLOT(abort()));
 }
 
 bool Chronos::startServer(PacketInterface *packet, QHostAddress addr)
@@ -61,11 +64,23 @@ void Chronos::startTimerSlot()
 {
     qDebug() << "Starting car";
     mObjectState = ISO_OBJECT_STATE_RUNNING;
-
+	mChronos->startHeabLastHeabReceivedTimer();
     if (mPacket) {
         mPacket->setApActive(255, true);
-        mScenarioTimer.start();
+		mScenarioTimer.start();
     }
+}
+
+void Chronos::abort()
+{
+	qDebug() << "Stopping car";
+	mObjectState = ISO_OBJECT_STATE_ABORT;
+	mScenarioTimer.invalidate();
+
+	if (mPacket) {
+		mPacket->setApActive(255, false);
+	}
+
 }
 
 void Chronos::connectionChanged(bool connected, QString address)
@@ -243,23 +258,44 @@ void Chronos::processStrt(chronos_strt strt)
     }
 }
 
+
+
 void Chronos::processHeab(chronos_heab heab)
 {
     (void)heab;
 
     if (mPacket) {
-        if (heab.status == CONTROL_CENTER_STATUS_READY) {
-            mHeabPollCnt++;
+		switch (heab.status) {
+		case CONTROL_CENTER_STATUS_INIT:
+			break;
+		case CONTROL_CENTER_STATUS_READY:
+				mHeabPollCnt++;
+				if (mHeabPollCnt >= 4) {
+								mHeabPollCnt = 0;
+								mPacket->getState(255);
+				}
+			break;
+		case CONTROL_CENTER_STATUS_ABORT:
+			abort();
+			break;
+		case CONTROL_CENTER_STATUS_RUNNING:
+			break;
+		case CONTROL_CENTER_STATUS_TEST_DONE:	//!<
+			abort();
+			break;
+		case CONTROL_CENTER_STATUS_NORMAL_STOP:
+			abort();
+			break;
+		default:
+			qDebug()<< "Uknown Control center status: " << heab.status;
+			abort();
+			break;
+		}
+	} else{
+		abort();
+		}
+  }
 
-            if (mHeabPollCnt >= 4) {
-                mHeabPollCnt = 0;
-                mPacket->getState(255);
-            }
-        } else {
-            mPacket->setApActive(255, false);
-        }
-    }
-}
 
 void Chronos::processSypm(chronos_sypm sypm)
 {
@@ -308,7 +344,7 @@ void Chronos::processMtsp(chronos_mtsp mtsp)
 void Chronos::processRcmm(chronos_rcmm rcmm)
 {
     if (mObjectState != ISO_OBJECT_STATE_REMOTECONTROL) {
-        qDebug() << "Ignored because car is not in remote control state";
+        qDebug() << "RCMM ignored because car is not in remote control state";
         return;
     }
 
